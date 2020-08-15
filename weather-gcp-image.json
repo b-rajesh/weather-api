@@ -4,8 +4,10 @@
       "machine_type": "f1-micro",
       "region": "australia-southeast1",
       "zone": "australia-southeast1-a",
-      "purpose": "weather-api-v1",
+      "purpose": "weather-api-v2",
       "image_family": "ubuntu-1804-lts",
+      "consul-packer-module-version": "0.4.0",
+      "consul_version": "1.8.3",
       "project_id": "Your_GCP_Project_Id"
     },
     "builders": [
@@ -14,6 +16,7 @@
         "type": "googlecompute",
         "project_id": "{{user `project_id`}}",
         "machine_type": "{{user `machine_type`}}",
+        "image_family": "weather-ubuntu-1804",
         "source_image_family": "{{user `image_family`}}",
         "region": "{{user `region`}}",
         "zone": "{{user `zone`}}",
@@ -22,7 +25,7 @@
         "disk_size": 16,
         "disk_type": "pd-ssd",
         "ssh_username": "ubuntu",
-        "tags": ["weather-api-v1"]
+        "tags": ["weather-api-v2"]
       }
     ],
     
@@ -62,6 +65,14 @@
       },
       {
         "type": "file",
+        "source": "weather-svc-v1-consul-client.json",
+        "destination": "/tmp/",
+        "only": [
+          "weather-api"
+        ]
+      },
+      {
+        "type": "file",
         "source": ".env",
         "destination": "/tmp/",
         "only": [
@@ -80,10 +91,31 @@
       {
         "type": "shell",
         "inline": [
-            "sudo sh /tmp/install-node.sh"
+            "mkdir -p /tmp/terraform-google-consul",
+            "mkdir -p /tmp/bash-commons"
+          ]
+      },
+      {
+        "type": "shell",
+        "inline": [
+          "sudo mkdir -p /opt/gruntwork",
+          "git clone --branch v0.0.3 https://github.com/gruntwork-io/bash-commons.git /tmp/bash-commons",
+          "sudo cp -r /tmp/bash-commons/modules/bash-commons/src /opt/gruntwork/bash-commons"
+        ]
+      },
+      {
+        "type": "shell",
+        "inline": [
+          "git clone --branch v{{user `consul-packer-module-version`}}  https://github.com/hashicorp/terraform-google-consul.git  /tmp/terraform-google-consul",
+          "/tmp/terraform-google-consul/modules/install-consul/install-consul --version {{user `consul_version`}}",
+          "/tmp/terraform-google-consul/modules/install-dnsmasq/install-dnsmasq"
         ],
-        "only": [
-            "weather-api"
+        "pause_before": "30s"
+      },
+      {
+        "type": "shell",
+        "inline": [
+            "sudo sh /tmp/install-node.sh"
         ]
       }
     ]
