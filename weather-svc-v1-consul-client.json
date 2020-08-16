@@ -3,7 +3,8 @@
         "name": "weather-v1-svc",
         "tags": [
             "microservice",
-            "nodejs"
+            "nodejs",
+            "v8.9.4"
         ],
         "port": 3000,
         "check": {
